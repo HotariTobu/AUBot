@@ -3,65 +3,34 @@ from discord.ext import commands
 
 from icon import OperatorIconKeys, OPERATOR_ICONS, PLAYER_ICONS
 from game import Game
-from player import Player
+import text
 
 games = {}
-
-OPERATOR_ICONS_STR = f"""\
-{OPERATOR_ICONS[OperatorIconKeys.DISCUSSION]}:\tswitch discussion
-{OPERATOR_ICONS[OperatorIconKeys.KILL]}:\tkill N
-{OPERATOR_ICONS[OperatorIconKeys.RESET]}:\treset the game
-{OPERATOR_ICONS[OperatorIconKeys.END]}:\tend the game
-"""
 
 def get_id_from(ctx: commands.Context):
     return ctx.author.voice.channel.id
 
-async def update_embed(game: Game):
-    description = ""
-    for player in game.players:
-        if player.is_killed:
-            description += f"||{player.emoji}:\t{player.name}||\n"
-        else:
-            description += f"{player.emoji}:\t{player.name}\n"
-    description += f"\n{OPERATOR_ICONS_STR}"
-
-    embed = discord.Embed(description = description)
-    await game.message.edit(embed = embed)
-
 async def begin(ctx: commands.Context):
-    voice = ctx.author.voice
-    if voice is None:
-        await ctx.send("You are not connected to any voice channel.")
+    if ctx.author.voice is None:
+        await ctx.send(text.NONE_VOICE_TEXT)
         return
 
     if get_id_from(ctx) in games:
-        await ctx.send("The game has already begun!")
+        await ctx.send(text.BEGUN_GAME_TEXT)
         return
     
-    await voice.channel.connect()
-
-    players = []
-    index = 0
-    for member in voice.channel.members:
-        if not member.bot:
-            players.append(Player(PLAYER_ICONS[index], member))
-            index += 1
-    
-    message = await ctx.send("Let's enjoy!")
-    game = Game(players, message)
+    message = await ctx.send(text.get_game_text(ctx.author.voice.channel.name))
+    game = Game(message, ctx.author.voice.channel)
     games[get_id_from(ctx)] = game
     
-    await update_embed(game)
+    await game.update_embed()
     for key in OperatorIconKeys:
         await message.add_reaction(OPERATOR_ICONS[key])
-
-failed_text = "Pls. begin a game before calling some commands."
 
 async def open(ctx: commands.Context):
     game = games.get(get_id_from(ctx))
     if game is None:
-        await ctx.send(failed_text)
+        await ctx.send(text.FAILED_TEXT)
         return
 
     await game.open()
@@ -69,7 +38,7 @@ async def open(ctx: commands.Context):
 async def close(ctx: commands.Context):
     game = games.get(get_id_from(ctx))
     if game is None:
-        await ctx.send(failed_text)
+        await ctx.send(text.FAILED_TEXT)
         return
 
     await game.close()
@@ -77,60 +46,57 @@ async def close(ctx: commands.Context):
 async def kill(ctx: commands.Context, arg: str):
     game = games.get(get_id_from(ctx))
     if game is None:
-        await ctx.send(failed_text)
+        await ctx.send(text.FAILED_TEXT)
         return
         
     if (await game.kill(arg)):
-        await ctx.send(f"There is no player tagged or named {arg}")
-    else:
-        await update_embed(game)
+        await ctx.send(text.get_failed_kill_text(arg))
 
 async def reset(ctx: commands.Context):
     game = games.get(get_id_from(ctx))
     if game is None:
-        await ctx.send(failed_text)
+        await ctx.send(text.FAILED_TEXT)
         return
 
     await game.reset()
-    await update_embed(game)
 
 async def end(ctx: commands.Context):
     game = games.pop(get_id_from(ctx), None)
     if game is None:
-        await ctx.send(failed_text)
+        await ctx.send(text.FAILED_TEXT)
         return
 
-    await ctx.voice_client.disconnect()
-    await game.reset()
-    await game.message.delete()
-    if (not game.kill_message is None):
-        await game.kill_message.delete()
+    await game.end()
 
 async def on_reaction_add(reaction: discord.Reaction, user):
-    game = games.get(user.voice.channel.id)
-    if game is None or reaction.message.author.id == user.id:
+    if user.voice is None:
         return
-
-    ctx = commands.Context(message = game.message, prefix = '')
+    
+    game = games.get(user.voice.channel.id)
+    if game is None:
+        return
 
     if reaction.message == game.message:
         if reaction.emoji == OPERATOR_ICONS[OperatorIconKeys.DISCUSSION]:
-            await open(ctx)
+            await game.open()
             return
         elif reaction.emoji == OPERATOR_ICONS[OperatorIconKeys.KILL]:
-            message = await ctx.send("Who has passed away?")
-            for player in game.get_alive_players():
-                await message.add_reaction(player.emoji)
-            game.kill_message = message
+            alive_players = game.get_alive_players()
+            if len(alive_players) > 0:
+                message = await reaction.message.channel.send(text.KILL_TEXT)
+                for player in alive_players:
+                    await message.add_reaction(player.emoji)
+                game.kill_message = message
         elif reaction.emoji == OPERATOR_ICONS[OperatorIconKeys.RESET]:
-            await reset(ctx)
+            await game.reset()
         elif reaction.emoji == OPERATOR_ICONS[OperatorIconKeys.END]:
-            await end(ctx)
+            del games[user.voice.channel.id]
+            await game.end()
             return
     elif reaction.message == game.kill_message:
         for emoji in PLAYER_ICONS:
             if reaction.emoji == emoji:
-                await kill(ctx, emoji)
+                await game.kill(emoji)
                 await game.kill_message.delete()
                 game.kill_message = None
                 return
@@ -138,11 +104,24 @@ async def on_reaction_add(reaction: discord.Reaction, user):
     #await reaction.remove(user)
 
 async def on_reaction_remove(reaction: discord.Reaction, user):
+    if user.voice is None:
+        return
+    
     game = games.get(user.voice.channel.id)
     if game is None or reaction.message != game.message:
         return
 
-    ctx = commands.Context(message = game.message, prefix = '')
-
     if reaction.emoji == OPERATOR_ICONS[OperatorIconKeys.DISCUSSION]:
-        await close(ctx)
+        await game.close()
+
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    if (before.channel is None):
+        return
+    
+    game = games.get(before.channel.id)
+    if game is None:
+        return
+
+    if len(before.channel.members) == 0:
+        del games[before.channel.id]
+        await game.end()

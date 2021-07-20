@@ -5,14 +5,11 @@ import logging
 import sys
 
 import sub
-
-prefixes = ['au', 'Au']
-with open("./token.txt", encoding = "utf-8") as file:
-    token = file.read()
+import text
 
 intents = discord.Intents.default()
 intents.members = True
-bot = commands.Bot(command_prefix = prefixes, intents = intents)
+bot = commands.Bot(command_prefix = text.PREFIXES, intents = intents)
 
 @bot.event
 async def on_ready():
@@ -53,8 +50,8 @@ async def begin(ctx: commands.Context):
 async def o(ctx: commands.Context):
     await sub.open(ctx)
 
-@bot.command()
-async def open(ctx: commands.Context):
+@bot.command("open")
+async def _open(ctx: commands.Context):
     await sub.open(ctx)
 
 @bot.command()
@@ -98,21 +95,9 @@ async def on_message(message: discord.Message):
         await sub.begin(commands.Context(message = message, prefix = ''))
         return
     
-    for prefix in prefixes:
+    for prefix in text.PREFIXES:
         if prefix == message.content:
-            await message.channel.send(f"""\
-To play, first, gather members in a voice channel, and then call beginning command.
-When someone passed away, call killing command.
-A prefix is needed to call commands.
-Prefixes:
-    {", ".join(prefixes)}
-Commands:
-    b, begin:\tbegin the game
-    o, open:\topen a discussion
-    c, close\tclose the discussion
-    k, kill N\tkill N
-    r, reset\teset the game
-    e, end\tend the game""")
+            await message.channel.send(text.HELP_TEXT)
             return
     
     await bot.process_commands(message)
@@ -125,4 +110,10 @@ async def on_reaction_add(reaction: discord.Reaction, user):
 async def on_reaction_remove(reaction: discord.Reaction, user):
     await sub.on_reaction_remove(reaction, user)
 
+@bot.event
+async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
+    await sub.on_voice_state_update(member, before, after)
+
+with open("./token.txt", encoding = "utf-8") as file:
+    token = file.read()
 bot.run(token)
