@@ -27,5 +27,5 @@ Put '*Au*' or '*au*' as a prefix in front of commands.
 | o | open | - | open a discussion |
 | c | close | - | close the discussion |
 | k | kill | N | kill N |
-| r | reset | - | eset the game |
+| r | reset | - | reset the game |
 | e | end | - | end the game |
