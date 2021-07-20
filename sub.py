@@ -48,6 +48,10 @@ async def kill(ctx: commands.Context, arg: str):
     if game is None:
         await ctx.send(text.FAILED_TEXT)
         return
+
+    if arg is None:
+        await ctx.send(text.KILL_COMMAND_TEXT)
+        return
         
     if (await game.kill(arg)):
         await ctx.send(text.get_failed_kill_text(arg))

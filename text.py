@@ -11,10 +11,10 @@ Prefixes:
 Commands:
     b, begin:\tbegin the game
     o, open:\topen a discussion
-    c, close\tclose the discussion
-    k, kill N\tkill N
-    r, reset\teset the game
-    e, end\tend the game"""
+    c, close:\tclose the discussion
+    k, kill N:\tkill N
+    r, reset:\teset the game
+    e, end:\tend the game"""
 
 NONE_VOICE_TEXT = "You are not connected to any voice channel."
 BEGUN_GAME_TEXT = "The game has already begun!"
@@ -24,6 +24,7 @@ def get_game_text(arg: str):
 FAILED_TEXT = "Pls. begin a game before calling some commands."
 
 KILL_TEXT = "Who has passed away?"
+KILL_COMMAND_TEXT = "Index, emoji, name, or nickname is needed in the back of the command."
 def get_failed_kill_text(arg: str):
     return f"There is no player tagged or named {arg}"
 

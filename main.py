@@ -63,11 +63,11 @@ async def join(ctx: commands.Context):
     await sub.close(ctx)
 
 @bot.command()
-async def k(ctx: commands.Context, arg: str):
+async def k(ctx: commands.Context, arg: str = None):
     await sub.kill(ctx, arg)
 
 @bot.command()
-async def kill(ctx: commands.Context, arg: str):
+async def kill(ctx: commands.Context, arg: str = None):
     await sub.kill(ctx, arg)
 
 @bot.command()
