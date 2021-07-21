@@ -33,9 +33,11 @@ class Game:
         self.update_players()
 
     async def update_player_state(self, player):
+        is_mending = bool(self.state == GameState.MENDING)
+        is_alive = bool(not player.is_killed)
         await player.member.edit(
-            mute = (True if self.state == GameState.MENDING else False) if not player.is_killed else (False if self.state == GameState.MENDING else True),
-            deafen = False if player.is_killed else (True if self.state == GameState.MENDING else False)
+            mute = not is_alive ^ is_mending,
+            deafen = is_alive & is_mending
         )
 
     async def open(self):

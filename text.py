@@ -13,7 +13,7 @@ Commands:
     o, open:\topen a discussion
     c, close:\tclose the discussion
     k, kill N:\tkill N
-    r, reset:\teset the game
+    r, reset:\treset the game
     e, end:\tend the game"""
 
 NONE_VOICE_TEXT = "You are not connected to any voice channel."
