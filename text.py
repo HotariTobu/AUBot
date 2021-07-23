@@ -20,6 +20,8 @@ NONE_VOICE_TEXT = "You are not connected to any voice channel."
 BEGUN_GAME_TEXT = "The game has already begun!"
 def get_game_text(arg: str):
     return f"Let's enjoy! - {arg} -"
+def get_embed_text(arg: int):
+    return f"{arg} players"
 
 FAILED_TEXT = "Pls. begin a game before calling some commands."
 

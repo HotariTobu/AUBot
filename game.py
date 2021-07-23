@@ -11,7 +11,7 @@ class GameState(Enum):
 
 class Game:
     async def update_embed(self):
-        description = ""
+        description = text.get_embed_text(len(self.players))
         for player in self.players:
             if player.is_killed:
                 description += f"||{player.emoji}:\t{player.name}||\n"
