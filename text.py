@@ -21,7 +21,7 @@ BEGUN_GAME_TEXT = "The game has already begun!"
 def get_game_text(arg: str):
     return f"Let's enjoy! - {arg} -"
 def get_embed_text(arg: int):
-    return f"{arg} players"
+    return f"{arg} players\n"
 
 FAILED_TEXT = "Pls. begin a game before calling some commands."
 
